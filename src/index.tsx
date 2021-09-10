@@ -24,6 +24,8 @@ class ScrollableFeed extends React.Component<ScrollableFeedProps> {
   private forceScroll: boolean;
   private skipForceScroll: boolean;
   private endIndex: number;
+  private startIndexOverride: number;
+  private endIndexOverride: number;
 
   constructor(props: ScrollableFeedProps) {
     super(props);
@@ -33,6 +35,8 @@ class ScrollableFeed extends React.Component<ScrollableFeedProps> {
     this.handleScroll = this.handleScroll.bind(this);
     this.forceScroll = true;
     this.skipForceScroll = false;
+    this.startIndexOverride = 0;
+    this.endIndexOverride = 0;
   }
 
   static defaultProps: ScrollableFeedProps = {
@@ -152,6 +156,27 @@ class ScrollableFeed extends React.Component<ScrollableFeedProps> {
     }
   }
 
+  /**
+   * Jump to the bottom
+   */
+  public jumpToBottom(): void {
+    const { children, itemHeight, marginTop } = this.props;
+    const childrenRef = children ? children[1] : null;
+    if (this.wrapperRef.current) {
+      const upperParent = this.wrapperRef.current.parentElement;
+      if (upperParent) {
+        const upperParentRect = upperParent.getBoundingClientRect();
+        var windowHeight = upperParentRect.height;
+        const actualHeight = itemHeight + marginTop;
+
+        this.startIndexOverride = childrenRef.length - Math.floor(windowHeight / actualHeight) - buffer;
+        this.endIndexOverride = childrenRef.length - 1;
+        this.forceUpdate();
+        this.scrollToBottom();
+      }
+    }
+  }
+
   render(): React.ReactNode {
     const { children, className, itemHeight, marginTop } = this.props;
     const childrenRef = children ? children[1] : null;
@@ -199,6 +224,16 @@ class ScrollableFeed extends React.Component<ScrollableFeedProps> {
 
     if (startIndex < 0) {
       startIndex = 0;
+    }
+
+    if (this.startIndexOverride > 0) {
+      startIndex = this.startIndexOverride;
+      this.startIndexOverride = 0;
+    }
+
+    if (this.endIndexOverride > 0) {
+      endIndex = this.endIndexOverride;
+      this.endIndexOverride = 0;
     }
 
     if (endIndex > (childrenRef.length - 1)) {
