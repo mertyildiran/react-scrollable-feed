@@ -7,7 +7,6 @@ const buffer = 3;
 export type ScrollableFeedProps = {
   itemHeight: number;
   marginTop: number;
-  forceScroll?: boolean;
   animateScroll?: (element: HTMLElement, offset: number) => void;
   onScrollComplete?: () => void;
   changeDetectionFilter?: (previousProps: ScrollableFeedComponentProps, newProps: ScrollableFeedComponentProps) => boolean;
@@ -22,6 +21,9 @@ class ScrollableFeed extends React.Component<ScrollableFeedProps> {
   private readonly wrapperRef: React.RefObject<HTMLDivElement>;
   private readonly topRef: React.RefObject<HTMLDivElement>;
   private readonly bottomRef: React.RefObject<HTMLDivElement>;
+  private forceScroll: boolean;
+  private skipForceScroll: boolean;
+  private endIndex: number;
 
   constructor(props: ScrollableFeedProps) {
     super(props);
@@ -29,12 +31,13 @@ class ScrollableFeed extends React.Component<ScrollableFeedProps> {
     this.topRef = React.createRef();
     this.bottomRef = React.createRef();
     this.handleScroll = this.handleScroll.bind(this);
+    this.forceScroll = true;
+    this.skipForceScroll = false;
   }
 
   static defaultProps: ScrollableFeedProps = {
     itemHeight: 0,
     marginTop: 0,
-    forceScroll: false,
     animateScroll: (element: HTMLElement, offset: number): void => {
       if (element.scrollBy) {
         element.scrollBy({ top: offset });
@@ -57,11 +60,15 @@ class ScrollableFeed extends React.Component<ScrollableFeedProps> {
     return false;
   }
 
-  componentDidUpdate(previousProps: ScrollableFeedComponentProps, {}: any, snapshot: boolean): void {
-    const { forceScroll, changeDetectionFilter } = this.props;
+  componentDidUpdate(previousProps: ScrollableFeedComponentProps, {}: any): void {
+    const { changeDetectionFilter } = this.props;
     const isValidChange = changeDetectionFilter!(previousProps, this.props);
-    if (isValidChange && (forceScroll || snapshot) && this.bottomRef.current && this.wrapperRef.current) {
-      this.scrollParentToChild(this.wrapperRef.current, this.bottomRef.current);
+    if (!this.skipForceScroll) {
+      if (isValidChange && !this.skipForceScroll && this.forceScroll) {
+        this.scrollToBottom();
+      }
+    } else {
+      this.skipForceScroll = false;
     }
   }
 
@@ -118,10 +125,14 @@ class ScrollableFeed extends React.Component<ScrollableFeedProps> {
    */
   protected handleScroll(): void {
     this.forceUpdate();
-    const { viewableDetectionEpsilon, onScroll } = this.props;
-    if (onScroll && this.bottomRef.current && this.wrapperRef.current) {
-      const isAtBottom = ScrollableFeed.isViewable(this.wrapperRef.current, this.bottomRef.current, viewableDetectionEpsilon!);
-      onScroll(isAtBottom);
+    const { children, onScroll } = this.props;
+    const childrenRef = children ? children[1] : null;
+    if (onScroll && this.endIndex >= (childrenRef.length - 1)) {
+      this.forceScroll = true;
+      this.skipForceScroll = true;
+      onScroll(true);
+    } else {
+      this.forceScroll = false;
     }
   }
 
@@ -129,8 +140,9 @@ class ScrollableFeed extends React.Component<ScrollableFeedProps> {
    * Scroll to the bottom
    */
   public scrollToBottom(): void {
-    if (this.wrapperRef.current && this.wrapperRef.current.parentElement) {
-      const parent = this.wrapperRef.current.parentElement;
+    this.forceScroll = true;
+    if (this.wrapperRef.current) {
+      const parent = this.wrapperRef.current;
       const { animateScroll, onScrollComplete, children, itemHeight } = this.props;
       const childrenRef = children ? children[1] : null;
       if (animateScroll && parent) {
@@ -192,6 +204,8 @@ class ScrollableFeed extends React.Component<ScrollableFeedProps> {
     if (endIndex > (childrenRef.length - 1)) {
       endIndex = (childrenRef.length - 1);
     }
+
+    this.endIndex = endIndex;
 
     const items = [];
 
