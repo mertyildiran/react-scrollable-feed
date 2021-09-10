@@ -2,7 +2,11 @@ import * as React from 'react'
 import { ReactNode } from 'react';
 import styles from './styles.css'
 
+const buffer = 3;
+
 export type ScrollableFeedProps = {
+  itemHeight: number;
+  marginTop: number;
   forceScroll?: boolean;
   animateScroll?: (element: HTMLElement, offset: number) => void;
   onScrollComplete?: () => void;
@@ -16,16 +20,20 @@ type ScrollableFeedComponentProps = Readonly<{ children?: ReactNode }> & Readonl
 
 class ScrollableFeed extends React.Component<ScrollableFeedProps> {
   private readonly wrapperRef: React.RefObject<HTMLDivElement>;
+  private readonly topRef: React.RefObject<HTMLDivElement>;
   private readonly bottomRef: React.RefObject<HTMLDivElement>;
 
   constructor(props: ScrollableFeedProps) {
     super(props);
-    this.bottomRef = React.createRef();
     this.wrapperRef = React.createRef();
+    this.topRef = React.createRef();
+    this.bottomRef = React.createRef();
     this.handleScroll = this.handleScroll.bind(this);
   }
 
   static defaultProps: ScrollableFeedProps = {
+    itemHeight: 0,
+    marginTop: 0,
     forceScroll: false,
     animateScroll: (element: HTMLElement, offset: number): void => {
       if (element.scrollBy) {
@@ -58,10 +66,7 @@ class ScrollableFeed extends React.Component<ScrollableFeedProps> {
   }
 
   componentDidMount(): void {
-    //Scroll to bottom from the start
-    if (this.bottomRef.current && this.wrapperRef.current) {
-      this.scrollParentToChild(this.wrapperRef.current, this.bottomRef.current);
-    }
+    this.scrollToBottom();
   }
 
   /**
@@ -112,6 +117,7 @@ class ScrollableFeed extends React.Component<ScrollableFeedProps> {
    * Fires the onScroll event, sending isAtBottom boolean as its first parameter
    */
   protected handleScroll(): void {
+    this.forceUpdate();
     const { viewableDetectionEpsilon, onScroll } = this.props;
     if (onScroll && this.bottomRef.current && this.wrapperRef.current) {
       const isAtBottom = ScrollableFeed.isViewable(this.wrapperRef.current, this.bottomRef.current, viewableDetectionEpsilon!);
@@ -123,17 +129,86 @@ class ScrollableFeed extends React.Component<ScrollableFeedProps> {
    * Scroll to the bottom
    */
   public scrollToBottom(): void {
-    if (this.bottomRef.current && this.wrapperRef.current) {
-      this.scrollParentToChild(this.wrapperRef.current, this.bottomRef.current);
+    if (this.wrapperRef.current && this.wrapperRef.current.parentElement) {
+      const parent = this.wrapperRef.current.parentElement;
+      const { animateScroll, onScrollComplete, children, itemHeight } = this.props;
+      const childrenRef = children ? children[1] : null;
+      if (animateScroll && parent) {
+        animateScroll(parent, (childrenRef.length + buffer) * itemHeight);
+        onScrollComplete!();
+      }
     }
   }
 
   render(): React.ReactNode {
-    const { children, className } = this.props;
+    const { children, className, itemHeight, marginTop } = this.props;
+    const childrenRef = children ? children[1] : null;
+    if (!childrenRef) {
+      return <></>;
+    }
+
+    var windowHeight = 0;
+    var windowTop = 0;
+
+    if (this.wrapperRef.current) {
+      const upperParent = this.wrapperRef.current.parentElement;
+      if (upperParent) {
+        const upperParentRect = upperParent.getBoundingClientRect();
+        windowHeight = upperParentRect.height;
+        windowTop = upperParentRect.top;
+
+        const { animateScroll, onScrollComplete } = this.props;
+        if (animateScroll && upperParent) {
+          animateScroll(upperParent, (childrenRef.length + buffer) * itemHeight);
+          onScrollComplete!();
+        }
+      }
+    }
+
+    const numItems = children ? children[1].length : 0;
+    var top = 0;
+
+    if (this.topRef.current) {
+      const topRect = this.topRef.current.getBoundingClientRect();
+      if (topRect.top < windowTop) {
+        top = windowTop - topRect.top;
+      }
+    }
+
+    const actualHeight = itemHeight + marginTop;
+    var startIndex = Math.floor(top / actualHeight);
+    var endIndex = Math.min(
+      numItems - 1, // don't render past the end of the list
+      Math.floor((top + windowHeight) / actualHeight)
+    );
+
+    startIndex -= buffer;
+    endIndex += buffer;
+
+    if (startIndex < 0) {
+      startIndex = 0;
+    }
+
+    if (endIndex > (childrenRef.length - 1)) {
+      endIndex = (childrenRef.length - 1);
+    }
+
+    const items = [];
+
+    for (let i = startIndex; i <= endIndex; i++) {
+      var item = childrenRef[i];
+      item.props.style['top'] = `${i * actualHeight}px`;
+      item.props.style['marginTop'] = `${marginTop}px`;
+      items.push(
+        item
+      );
+    }
+
     const joinedClassName = styles.scrollableDiv + (className ? " " + className : "");
     return (
       <div className={joinedClassName} ref={this.wrapperRef} onScroll={this.handleScroll}>
-        {children}
+        <div ref={this.topRef}></div>
+        {items}
         <div ref={this.bottomRef}></div>
       </div>
     );
