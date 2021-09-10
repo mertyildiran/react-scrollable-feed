@@ -4,20 +4,20 @@ import styles from './styles.css'
 
 const buffer = 3;
 
-export type ScrollableFeedProps = {
+export type ScrollableFeedVirtualizedProps = {
   itemHeight: number;
   marginTop: number;
   animateScroll?: (element: HTMLElement, offset: number) => void;
   onScrollComplete?: () => void;
-  changeDetectionFilter?: (previousProps: ScrollableFeedComponentProps, newProps: ScrollableFeedComponentProps) => boolean;
+  changeDetectionFilter?: (previousProps: ScrollableFeedVirtualizedComponentProps, newProps: ScrollableFeedVirtualizedComponentProps) => boolean;
   viewableDetectionEpsilon?: number;
   className?: string;
   onScroll?: (isAtBottom: boolean) => void;
 }
 
-type ScrollableFeedComponentProps = Readonly<{ children?: ReactNode }> & Readonly<ScrollableFeedProps>;
+type ScrollableFeedVirtualizedComponentProps = Readonly<{ children?: ReactNode }> & Readonly<ScrollableFeedVirtualizedProps>;
 
-class ScrollableFeed extends React.Component<ScrollableFeedProps> {
+class ScrollableFeedVirtualized extends React.Component<ScrollableFeedVirtualizedProps> {
   private readonly wrapperRef: React.RefObject<HTMLDivElement>;
   private readonly topRef: React.RefObject<HTMLDivElement>;
   private readonly bottomRef: React.RefObject<HTMLDivElement>;
@@ -27,7 +27,7 @@ class ScrollableFeed extends React.Component<ScrollableFeedProps> {
   private startIndexOverride: number;
   private endIndexOverride: number;
 
-  constructor(props: ScrollableFeedProps) {
+  constructor(props: ScrollableFeedVirtualizedProps) {
     super(props);
     this.wrapperRef = React.createRef();
     this.topRef = React.createRef();
@@ -39,7 +39,7 @@ class ScrollableFeed extends React.Component<ScrollableFeedProps> {
     this.endIndexOverride = 0;
   }
 
-  static defaultProps: ScrollableFeedProps = {
+  static defaultProps: ScrollableFeedVirtualizedProps = {
     itemHeight: 0,
     marginTop: 0,
     animateScroll: (element: HTMLElement, offset: number): void => {
@@ -59,12 +59,12 @@ class ScrollableFeed extends React.Component<ScrollableFeedProps> {
   getSnapshotBeforeUpdate(): boolean {
     if (this.wrapperRef.current && this.bottomRef.current) {
       const { viewableDetectionEpsilon } = this.props;
-      return ScrollableFeed.isViewable(this.wrapperRef.current, this.bottomRef.current, viewableDetectionEpsilon!); //This argument is passed down to componentDidUpdate as 3rd parameter
+      return ScrollableFeedVirtualized.isViewable(this.wrapperRef.current, this.bottomRef.current, viewableDetectionEpsilon!); //This argument is passed down to componentDidUpdate as 3rd parameter
     }
     return false;
   }
 
-  componentDidUpdate(previousProps: ScrollableFeedComponentProps, {}: any): void {
+  componentDidUpdate(previousProps: ScrollableFeedVirtualizedComponentProps, {}: any): void {
     const { changeDetectionFilter } = this.props;
     const isValidChange = changeDetectionFilter!(previousProps, this.props);
     if (!this.skipForceScroll) {
@@ -87,7 +87,7 @@ class ScrollableFeed extends React.Component<ScrollableFeedProps> {
    */
   protected scrollParentToChild(parent: HTMLElement, child: HTMLElement): void {
     const { viewableDetectionEpsilon } = this.props;
-    if (!ScrollableFeed.isViewable(parent, child, viewableDetectionEpsilon!)) {
+    if (!ScrollableFeedVirtualized.isViewable(parent, child, viewableDetectionEpsilon!)) {
       //Source: https://stackoverflow.com/a/45411081/6316091
       const parentRect = parent.getBoundingClientRect();
       const childRect = child.getBoundingClientRect();
@@ -264,4 +264,4 @@ class ScrollableFeed extends React.Component<ScrollableFeedProps> {
   }
 }
 
-export default ScrollableFeed;
+export default ScrollableFeedVirtualized;

@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 
-import ScrollableFeed from 'react-scrollable-feed';
+import ScrollableFeedVirtualized from 'react-scrollable-feed';
 import { RandomColorGenerator } from './random-color-generator';
 
 export default class App extends Component {
@@ -77,7 +77,7 @@ export default class App extends Component {
           <div className="col-md-8">
             <div className="card">
               <div className="card-body scrollable-wrapper pt-0 pb-0 mt-2">
-                <ScrollableFeed
+                <ScrollableFeedVirtualized
                   ref={this.scrollableRef}
                   onScroll={isAtBottom => this.updateIsAtBottomState(isAtBottom)}
                 >
@@ -88,7 +88,7 @@ export default class App extends Component {
                       </li>
                     ))}
                   </ul>
-                </ScrollableFeed>
+                </ScrollableFeedVirtualized>
               </div>
               <div className="text-center">
                 <p>{items.length} items</p>

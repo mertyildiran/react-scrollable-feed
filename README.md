@@ -28,6 +28,8 @@
 
 UX-wise, asking a user to scroll down manually a chat box when new messages arrive is quite painful. **react-scrollable-feed** aims to alleviate the burden of managing scrolling concerns from React developers. The same concept applies to any other kind of feed where new content arrives dynamically.
 
+**Virtualized** version of [react-scrollable-feed](https://www.npmjs.com/package/react-scrollable-feed) package.
+
 ## Demo
 
 View a live demo [here](https://dizco.github.io/react-scrollable-feed/).
@@ -37,7 +39,7 @@ View a live demo [here](https://dizco.github.io/react-scrollable-feed/).
 ## Install
 
 ```bash
-npm install --save react-scrollable-feed
+npm install --save react-scrollable-feed-virtualized
 ```
 
 ## Usage
@@ -45,19 +47,30 @@ npm install --save react-scrollable-feed
 ```tsx
 import * as React from 'react'
 
-import ScrollableFeed from 'react-scrollable-feed'
+import ScrollableFeedVirtualized from 'react-scrollable-feed'
 
 class App extends React.Component {
   render() {
     const items = ['Item 1', 'Item 2'];
 
     return (
-      <ScrollableFeed>
+      <ScrollableFeedVirtualized>
         {items.map((item, i) => <div key={i}>{item}</div>)}
-      </ScrollableFeed>
+      </ScrollableFeedVirtualized>
     );
   }
 }
+```
+
+### Virtualized
+
+Give `style: object;` prop to your `item` and set the styles below for the wrapper `<div>`:
+
+```tsx
+position: "absolute",
+top: style['top'],
+marginTop: style['marginTop'],
+width: "calc(100% - 25px)",
 ```
 
 ## Options
@@ -93,19 +106,19 @@ Is called after the scroll animation has been executed.
 
 ### changeDetectionFilter
 
-- Type: `(previousProps: ScrollableFeedComponentProps, newProps: ScrollableFeedComponentProps) => boolean`
+- Type: `(previousProps: ScrollableFeedVirtualizedComponentProps, newProps: ScrollableFeedVirtualizedComponentProps) => boolean`
 - Default: `() => true`
 
 Allows to customize _when_ the scroll should occur. This will be called everytime a `componentDidUpdate` happens, which means everytime one of the props changes. You will receive as parameters the previous and the new props.
 
-Note: `ScrollableFeedComponentProps` is defined as `Readonly<{ children?: ReactNode }> & Readonly<ScrollableFeedProps>`
+Note: `ScrollableFeedVirtualizedComponentProps` is defined as `Readonly<{ children?: ReactNode }> & Readonly<ScrollableFeedVirtualizedProps>`
 
 If you want to compare the last children from both the previous and new props, you could do something like this :
 
 ```tsx
 import * as React from 'react'
 
-import ScrollableFeed from 'react-scrollable-feed'
+import ScrollableFeedVirtualized from 'react-scrollable-feed'
 
 class App extends React.Component {
   changeDetectionFilter(previousProps, newProps) {
@@ -120,11 +133,11 @@ class App extends React.Component {
     const items = ['Item 1', 'Item 2'];
 
     return (
-      <ScrollableFeed
+      <ScrollableFeedVirtualized
         changeDetectionFilter={this.changeDetectionFilter}
       >
         {items.map((item, i) => <div key={i}>{item}</div>)}
-      </ScrollableFeed>
+      </ScrollableFeedVirtualized>
     );
   }
 }
@@ -137,7 +150,7 @@ export default App;
 - Type: `string`
 - Default: `undefined`
 
-`CSS` class that can be added on the wrapping div created by `ScrollableFeed`.
+`CSS` class that can be added on the wrapping div created by `ScrollableFeedVirtualized`.
 
 ### viewableDetectionEpsilon
 
@@ -151,7 +164,7 @@ Indicates the number of pixels of difference between the actual bottom and the c
 - Type: `(isAtBottom: boolean) => void`
 - Default: `() => {}`
 
-Is called when the `onScroll` event is triggered on the wrapper div created by `ScrollableFeed`.
+Is called when the `onScroll` event is triggered on the wrapper div created by `ScrollableFeedVirtualized`.
 
 Provides `isAtBottom` boolean value as a parameter, which indicates if the scroll is at bottom position, taking `viewableDetectionEpsilon` into account.
 
