@@ -47,7 +47,7 @@ npm install --save react-scrollable-feed-virtualized
 ```tsx
 import * as React from 'react'
 
-import ScrollableFeedVirtualized from 'react-scrollable-feed'
+import ScrollableFeedVirtualized from 'react-scrollable-feed-virtualized'
 
 class App extends React.Component {
   render() {
