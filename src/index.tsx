@@ -19,6 +19,7 @@ type ScrollableFeedVirtualizedComponentProps = Readonly<{ children?: ReactNode }
 
 class ScrollableFeedVirtualized extends React.Component<ScrollableFeedVirtualizedProps> {
   private readonly wrapperRef: React.RefObject<HTMLDivElement>;
+  private readonly childWrapperRef: React.RefObject<HTMLDivElement>;
   private readonly topRef: React.RefObject<HTMLDivElement>;
   private readonly bottomRef: React.RefObject<HTMLDivElement>;
   private forceScroll: boolean;
@@ -30,6 +31,7 @@ class ScrollableFeedVirtualized extends React.Component<ScrollableFeedVirtualize
   constructor(props: ScrollableFeedVirtualizedProps) {
     super(props);
     this.wrapperRef = React.createRef();
+    this.childWrapperRef = React.createRef();
     this.topRef = React.createRef();
     this.bottomRef = React.createRef();
     this.handleScroll = this.handleScroll.bind(this);
@@ -253,12 +255,16 @@ class ScrollableFeedVirtualized extends React.Component<ScrollableFeedVirtualize
       );
     }
 
+    const childWrapperHeight = actualHeight * numItems;
+
     const joinedClassName = styles.scrollableDiv + (className ? " " + className : "");
     return (
       <div className={joinedClassName} ref={this.wrapperRef} onScroll={this.handleScroll}>
-        <div ref={this.topRef}></div>
-        {items}
-        <div ref={this.bottomRef}></div>
+        <div ref={this.childWrapperRef} style={{height: `${childWrapperHeight}px`}}>
+          <div ref={this.topRef}></div>
+          {items}
+          <div ref={this.bottomRef}></div>
+        </div>
       </div>
     );
   }
