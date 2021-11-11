@@ -20,7 +20,6 @@ class ScrollableFeedVirtualized extends React.Component<ScrollableFeedVirtualize
   private readonly topRef: React.RefObject<HTMLDivElement>;
   private readonly bottomRef: React.RefObject<HTMLDivElement>;
   private forceScroll: boolean;
-  private endIndex: number;
   private startIndexOverride: number;
   private endIndexOverride: number;
 
@@ -156,10 +155,8 @@ class ScrollableFeedVirtualized extends React.Component<ScrollableFeedVirtualize
    * Handles the onScroll event, sending isAtBottom boolean as its first parameter
    */
   protected handleScroll(): void {
-    this.forceUpdate();
-    const { children, onScroll } = this.props;
-    const childrenRef = children ? children[1] : null;
-    if (onScroll && (this.endIndex + buffer) >= (childrenRef.length - 1)) {
+    const { onScroll } = this.props;
+    if (!this.forceScroll && onScroll) {
       onScroll(true);
     }
   }
@@ -263,8 +260,6 @@ class ScrollableFeedVirtualized extends React.Component<ScrollableFeedVirtualize
     if (endIndex > (childrenRef.length - 1)) {
       endIndex = (childrenRef.length - 1);
     }
-
-    this.endIndex = endIndex;
 
     const items = [];
 
