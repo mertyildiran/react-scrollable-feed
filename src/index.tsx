@@ -155,8 +155,9 @@ class ScrollableFeedVirtualized extends React.Component<ScrollableFeedVirtualize
    * Handles the onScroll event, sending isAtBottom boolean as its first parameter
    */
   protected handleScroll(): void {
+    this.forceUpdate();
     const { onScroll } = this.props;
-    if (!this.forceScroll && onScroll) {
+    if (this.forceScroll && onScroll) {
       onScroll(true);
     }
   }
