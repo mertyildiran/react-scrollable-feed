@@ -10,7 +10,7 @@ export type ScrollableFeedVirtualizedProps = {
   onScrollComplete?: () => void;
   viewableDetectionEpsilon?: number;
   className?: string;
-  onScroll?: (isAtBottom: boolean) => void;
+  onSnapBroken?: () => void; // Called in case of scrollbar is not snapped to the bottom
   scrollBarHorizontalGap?: number;
 }
 
@@ -20,7 +20,6 @@ class ScrollableFeedVirtualized extends React.Component<ScrollableFeedVirtualize
   private readonly topRef: React.RefObject<HTMLDivElement>;
   private readonly bottomRef: React.RefObject<HTMLDivElement>;
   private forceScroll: boolean;
-  private endIndex: number;
   private startIndexOverride: number;
   private endIndexOverride: number;
 
@@ -52,7 +51,7 @@ class ScrollableFeedVirtualized extends React.Component<ScrollableFeedVirtualize
     },
     onScrollComplete: () => {},
     viewableDetectionEpsilon: 2,
-    onScroll: () => {},
+    onSnapBroken: () => {},
   };
 
   getSnapshotBeforeUpdate(): boolean {
@@ -121,13 +120,16 @@ class ScrollableFeedVirtualized extends React.Component<ScrollableFeedVirtualize
    * Handles the keyDown event, sets forceScroll to false if it's PageUp or ArrowUp
    */
   protected handleKeyDown(e: any): void {
+    const { onSnapBroken } = this.props;
     switch (e.keyCode) {
       case 33: // PageUp
       case 38: // ArrowUp
         this.forceScroll = false;
+        onSnapBroken!();
         break;
       case 145: // ScrollLock
         this.forceScroll = !this.forceScroll;
+        onSnapBroken!();
         break;
       default:
         break;
@@ -138,30 +140,28 @@ class ScrollableFeedVirtualized extends React.Component<ScrollableFeedVirtualize
    * Handles the mouse wheel event, sets forceScroll to false
    */
   protected handleMouseWheel(): void {
+    const { onSnapBroken } = this.props;
     this.forceScroll = false;
+    onSnapBroken!();
   }
 
   /**
    * Handles the mouse down event, sets forceScroll to false
    */
   protected handleMouseDown(e: any): void {
-    const { scrollBarHorizontalGap } = this.props;
+    const { scrollBarHorizontalGap, onSnapBroken } = this.props;
     const gap = scrollBarHorizontalGap ? scrollBarHorizontalGap : 16;
     if (this.wrapperRef.current === e.target && (e.clientX - gap) >= e.target.clientWidth) {
       this.forceScroll = false;
+      onSnapBroken!();
     }
   }
 
   /**
-   * Handles the onScroll event, sending isAtBottom boolean as its first parameter
+   * Handles the onScroll event, forces render
    */
   protected handleScroll(): void {
     this.forceUpdate();
-    const { children, onScroll } = this.props;
-    const childrenRef = children ? children[1] : null;
-    if (onScroll) {
-      onScroll(this.forceScroll && this.endIndex >= (childrenRef.length - 1));
-    }
   }
 
   /**
@@ -263,8 +263,6 @@ class ScrollableFeedVirtualized extends React.Component<ScrollableFeedVirtualize
     if (endIndex > (childrenRef.length - 1)) {
       endIndex = (childrenRef.length - 1);
     }
-
-    this.endIndex = endIndex;
 
     const items = [];
 
