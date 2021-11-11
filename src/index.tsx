@@ -1,5 +1,4 @@
 import * as React from 'react'
-import { ReactNode } from 'react';
 import styles from './styles.css'
 
 const buffer = 3;
@@ -9,13 +8,11 @@ export type ScrollableFeedVirtualizedProps = {
   marginTop: number;
   animateScroll?: (element: HTMLElement, offset: number) => void;
   onScrollComplete?: () => void;
-  changeDetectionFilter?: (previousProps: ScrollableFeedVirtualizedComponentProps, newProps: ScrollableFeedVirtualizedComponentProps) => boolean;
   viewableDetectionEpsilon?: number;
   className?: string;
   onScroll?: (isAtBottom: boolean) => void;
+  scrollBarHorizontalGap?: number;
 }
-
-type ScrollableFeedVirtualizedComponentProps = Readonly<{ children?: ReactNode }> & Readonly<ScrollableFeedVirtualizedProps>;
 
 class ScrollableFeedVirtualized extends React.Component<ScrollableFeedVirtualizedProps> {
   private readonly wrapperRef: React.RefObject<HTMLDivElement>;
@@ -23,7 +20,6 @@ class ScrollableFeedVirtualized extends React.Component<ScrollableFeedVirtualize
   private readonly topRef: React.RefObject<HTMLDivElement>;
   private readonly bottomRef: React.RefObject<HTMLDivElement>;
   private forceScroll: boolean;
-  private skipForceScroll: boolean;
   private endIndex: number;
   private startIndexOverride: number;
   private endIndexOverride: number;
@@ -35,8 +31,10 @@ class ScrollableFeedVirtualized extends React.Component<ScrollableFeedVirtualize
     this.topRef = React.createRef();
     this.bottomRef = React.createRef();
     this.handleScroll = this.handleScroll.bind(this);
+    this.handleKeyDown = this.handleKeyDown.bind(this);
+    this.handleMouseWheel = this.handleMouseWheel.bind(this);
+    this.handleMouseDown = this.handleMouseDown.bind(this);
     this.forceScroll = true;
-    this.skipForceScroll = false;
     this.startIndexOverride = 0;
     this.endIndexOverride = 0;
   }
@@ -53,7 +51,6 @@ class ScrollableFeedVirtualized extends React.Component<ScrollableFeedVirtualize
       }
     },
     onScrollComplete: () => {},
-    changeDetectionFilter: () => true,
     viewableDetectionEpsilon: 2,
     onScroll: () => {},
   };
@@ -66,15 +63,9 @@ class ScrollableFeedVirtualized extends React.Component<ScrollableFeedVirtualize
     return false;
   }
 
-  componentDidUpdate(previousProps: ScrollableFeedVirtualizedComponentProps, {}: any): void {
-    const { changeDetectionFilter } = this.props;
-    const isValidChange = changeDetectionFilter!(previousProps, this.props);
-    if (!this.skipForceScroll) {
-      if (isValidChange && !this.skipForceScroll && this.forceScroll) {
-        this.scrollToBottom();
-      }
-    } else {
-      this.skipForceScroll = false;
+  componentDidUpdate({}: any): void {
+    if (this.forceScroll) {
+      this.scrollToBottom();
     }
   }
 
@@ -127,18 +118,49 @@ class ScrollableFeedVirtualized extends React.Component<ScrollableFeedVirtualize
   }
 
   /**
-   * Fires the onScroll event, sending isAtBottom boolean as its first parameter
+   * Handles the keyDown event, sets forceScroll to false if it's PageUp or ArrowUp
+   */
+  protected handleKeyDown(e: any): void {
+    switch (e.keyCode) {
+      case 33: // PageUp
+      case 38: // ArrowUp
+        this.forceScroll = false;
+        break;
+      case 145: // ScrollLock
+        this.forceScroll = !this.forceScroll;
+        break;
+      default:
+        break;
+    }
+  }
+
+  /**
+   * Handles the mouse wheel event, sets forceScroll to false
+   */
+  protected handleMouseWheel(): void {
+    this.forceScroll = false;
+  }
+
+  /**
+   * Handles the mouse down event, sets forceScroll to false
+   */
+  protected handleMouseDown(e: any): void {
+    const { scrollBarHorizontalGap } = this.props;
+    const gap = scrollBarHorizontalGap ? scrollBarHorizontalGap : 16;
+    if (this.wrapperRef.current === e.target && (e.clientX - gap) >= e.target.clientWidth) {
+      this.forceScroll = false;
+    }
+  }
+
+  /**
+   * Handles the onScroll event, sending isAtBottom boolean as its first parameter
    */
   protected handleScroll(): void {
     this.forceUpdate();
     const { children, onScroll } = this.props;
     const childrenRef = children ? children[1] : null;
-    if (onScroll && this.endIndex >= (childrenRef.length - 1)) {
-      this.forceScroll = true;
-      this.skipForceScroll = true;
+    if (onScroll && (this.endIndex + buffer) >= (childrenRef.length - 1)) {
       onScroll(true);
-    } else {
-      this.forceScroll = false;
     }
   }
 
@@ -146,7 +168,6 @@ class ScrollableFeedVirtualized extends React.Component<ScrollableFeedVirtualize
    * Scroll to the bottom
    */
   public scrollToBottom(): void {
-    this.forceScroll = true;
     if (this.wrapperRef.current) {
       const parent = this.wrapperRef.current;
       const { animateScroll, onScrollComplete, children, itemHeight } = this.props;
@@ -174,6 +195,7 @@ class ScrollableFeedVirtualized extends React.Component<ScrollableFeedVirtualize
         this.startIndexOverride = childrenRef.length - Math.floor(windowHeight / actualHeight) - buffer;
         this.endIndexOverride = childrenRef.length - 1;
         this.forceUpdate();
+        this.forceScroll = true;
         this.scrollToBottom();
       }
     }
@@ -259,7 +281,15 @@ class ScrollableFeedVirtualized extends React.Component<ScrollableFeedVirtualize
 
     const joinedClassName = styles.scrollableDiv + (className ? " " + className : "");
     return (
-      <div className={joinedClassName} ref={this.wrapperRef} onScroll={this.handleScroll}>
+      <div
+        className={joinedClassName}
+        ref={this.wrapperRef}
+        onScroll={this.handleScroll}
+        onKeyDown={this.handleKeyDown}
+        onWheel={this.handleMouseWheel}
+        onMouseDown={this.handleMouseDown}
+        tabIndex={0}
+      >
         <div ref={this.childWrapperRef} style={{height: `${childWrapperHeight}px`}}>
           <div ref={this.topRef}></div>
           {items}
