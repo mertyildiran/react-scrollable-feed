@@ -180,6 +180,27 @@ class ScrollableFeedVirtualized extends React.Component<ScrollableFeedVirtualize
   }
 
   /**
+   * Scroll to a certain start index
+   */
+  public scrollToIndex(startIndex: number): void {
+    const { itemHeight, marginTop, animateScroll, onScrollComplete } = this.props;
+    if (this.wrapperRef.current) {
+      const parent = this.wrapperRef.current;
+      const upperParent = this.wrapperRef.current.parentElement;
+      if (upperParent) {
+        const upperParentRect = upperParent.getBoundingClientRect();
+        var windowHeight = upperParentRect.height;
+        const actualHeight = itemHeight + marginTop;
+
+        if (animateScroll && parent) {
+          animateScroll(parent, (startIndex + Math.floor(windowHeight / actualHeight) + 2 * buffer) * itemHeight);
+          onScrollComplete!();
+        }
+      }
+    }
+  }
+
+  /**
    * Jump to the bottom
    */
   public jumpToBottom(): void {
